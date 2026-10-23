@@ -1,26 +1,443 @@
-:root{--g:#1e654b;--line:#d5dfd9}*{box-sizing:border-box}body{margin:0;font:15px Arial,sans-serif;color:#25332d;background:#f3f6f4}header{height:70px;background:var(--g);color:#fff;display:flex;align-items:center;gap:14px;padding:8px 4vw}header img{width:54px;height:54px;object-fit:contain;background:#fff;border-radius:50%}header b{flex:1}header label{background:#fff2;padding:9px;border-radius:6px}header label input{display:none}button{background:var(--g);color:#fff;border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer}nav{display:flex;gap:8px;padding:10px 4vw;background:#fff;border-bottom:1px solid var(--line)}main{max-width:1400px;margin:auto;padding:24px}.view{     display:none; }  .view.active, .view.on{     display:block; }.hero{text-align:center}.hero img{width:180px}.crud{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.crud input,select,input,textarea{width:100%;padding:9px;border:1px solid #bacbc2;border-radius:6px;background:#fff}.bar{display:flex;align-items:center;justify-content:flex-end;gap:8px}.bar h1{margin-right:auto}#paper{background:#fff;padding:35px;box-shadow:0 4px 20px #0001}.brand{display:grid;grid-template-columns:110px 1fr auto;align-items:center;gap:16px;border-bottom:3px solid var(--g);padding-bottom:14px}.brand img{width:100px}.brand h2,.brand p{margin:0}.brand>h1{color:var(--g)}.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px 28px;margin:25px 0}.meta label{font-size:12px;font-weight:bold}.scroll{overflow:auto}table{width:100%;border-collapse:collapse}th{background:var(--g);color:#fff;white-space:nowrap}th,td{padding:9px;border-bottom:1px solid var(--line)}.lines{min-width:1100px}.actions{display:flex;gap:8px;margin:10px 0}.bottom{display:grid;grid-template-columns:1fr 350px;gap:30px;margin-top:20px}.bottom textarea{height:120px}.totals p{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px}.grand{background:var(--g);color:#fff;border-radius:6px}dialog{border:0;border-radius:12px;padding:20px}dialog form{display:grid;gap:10px}#toast{display:none;position:fixed;bottom:20px;right:20px;background:#222;color:#fff;padding:12px;border-radius:7px}
-@media(max-width:800px){.crud{grid-template-columns:1fr}.bottom{grid-template-columns:1fr}.brand{grid-template-columns:80px 1fr}.brand>h1{grid-column:1/-1}.meta{grid-template-columns:1fr}main{padding:12px}}
+:root{
+    --g:#1e654b;
+    --line:#d5dfd9;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font:15px Arial,sans-serif;
+    color:#25332d;
+    background:#f3f6f4;
+}
+
+header{
+    height:70px;
+    background:var(--g);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:8px 4vw;
+}
+
+header img{
+    width:54px;
+    height:54px;
+    object-fit:contain;
+    background:#fff;
+    border-radius:50%;
+}
+
+header b{
+    flex:1;
+}
+
+header label{
+    background:#fff2;
+    padding:9px;
+    border-radius:6px;
+}
+
+header label input{
+    display:none;
+}
+
+button{
+    background:var(--g);
+    color:#fff;
+    border:0;
+    border-radius:7px;
+    padding:10px 14px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+nav{
+    display:flex;
+    gap:8px;
+    padding:10px 4vw;
+    background:#fff;
+    border-bottom:1px solid var(--line);
+}
+
+main{
+    max-width:1400px;
+    margin:auto;
+    padding:24px;
+}
+
+.view{
+    display:none;
+}
+
+.view.active,
+.view.on{
+    display:block;
+}
+
+.hero{
+    text-align:center;
+}
+
+.hero img{
+    width:180px;
+    height:auto;
+    object-fit:contain;
+}
+
+.crud{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:8px;
+}
+
+.crud input,
+select,
+input,
+textarea{
+    width:100%;
+    padding:9px;
+    border:1px solid #bacbc2;
+    border-radius:6px;
+    background:#fff;
+}
+
+.bar{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+}
+
+.bar h1{
+    margin-right:auto;
+}
+
+#paper{
+    background:#fff;
+    padding:35px;
+    box-shadow:0 4px 20px #0001;
+}
+
+/* Cabecera de la factura */
+
+.brand{
+    display:grid;
+    grid-template-columns:100px 1fr auto;
+    align-items:center;
+    gap:16px;
+    border-bottom:3px solid var(--g);
+    padding-bottom:14px;
+}
+
+/* Evita que el logo de Nueva factura aparezca enorme */
+
+.brand img,
+.invoice-brand img{
+    width:85px;
+    height:75px;
+    max-width:85px;
+    max-height:75px;
+    object-fit:contain;
+    display:block;
+}
+
+.brand h2,
+.brand p{
+    margin:0;
+}
+
+.brand>h1{
+    color:var(--g);
+}
+
+/* Datos de factura */
+
+.meta{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px 28px;
+    margin:25px 0;
+}
+
+.meta label{
+    font-size:12px;
+    font-weight:bold;
+}
+
+.scroll{
+    overflow:auto;
+}
+
+/* Tablas */
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:var(--g);
+    color:#fff;
+    white-space:nowrap;
+}
+
+th,
+td{
+    padding:9px;
+    border-bottom:1px solid var(--line);
+}
+
+.lines{
+    min-width:1100px;
+}
+
+.actions{
+    display:flex;
+    gap:8px;
+    margin:10px 0;
+}
+
+/* Parte inferior de la factura */
+
+.bottom{
+    display:grid;
+    grid-template-columns:1fr 350px;
+    gap:30px;
+    margin-top:20px;
+}
+
+.bottom textarea{
+    height:120px;
+}
+
+.totals p{
+    display:flex;
+    justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    padding:8px;
+}
+
+.grand{
+    background:var(--g);
+    color:#fff;
+    border-radius:6px;
+}
+
+/* Ventana de nuevo producto */
+
+dialog{
+    border:0;
+    border-radius:12px;
+    padding:20px;
+}
+
+dialog form{
+    display:grid;
+    gap:10px;
+}
+
+#toast{
+    display:none;
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:#222;
+    color:#fff;
+    padding:12px;
+    border-radius:7px;
+}
+
+/* Tablet / móvil */
+
+@media(max-width:800px){
+
+    .crud{
+        grid-template-columns:1fr;
+    }
+
+    .bottom{
+        grid-template-columns:1fr;
+    }
+
+    .brand{
+        grid-template-columns:85px 1fr;
+    }
+
+    .brand img,
+    .invoice-brand img{
+        width:70px;
+        height:65px;
+        max-width:70px;
+        max-height:65px;
+    }
+
+    .brand>h1{
+        grid-column:1/-1;
+    }
+
+    .meta{
+        grid-template-columns:1fr;
+    }
+
+    main{
+        padding:12px;
+    }
+}
+
+/* PDF / impresión */
+
 @media print{
-  @page{size:A4 portrait;margin:8mm}
-  body{background:#fff}
-  .no-print,header,nav,.view:not(#invoice),#toast{display:none!important}
-  main{padding:0;max-width:none}
-  #invoice{display:block!important}
-  #paper{box-shadow:none;padding:0;width:194mm;max-width:194mm}
-  .brand{display:grid!important;grid-template-columns:20mm 1fr 55mm!important;gap:4mm!important;align-items:center!important}
-  .brand img{width:18mm}
-  .brand h2{font-size:15px}
-  .brand p{font-size:9px}
-  .brand>h1{font-size:17px;text-align:right;grid-column:auto!important}
-  .meta{display:grid!important;grid-template-columns:1fr 1fr!important;column-gap:15mm!important;row-gap:2mm!important;margin:6mm 0!important;width:100%!important}
-  .meta label{display:block!important;font-size:9px!important;font-weight:700!important;break-inside:avoid!important}
-  .meta input,.meta select{display:block!important;width:100%!important;border:0!important;padding:1mm 0!important;background:transparent!important;color:#000!important;font-size:10px!important;font-weight:700!important;line-height:1.15!important;appearance:none!important;-webkit-appearance:none!important}
-  .scroll{overflow:visible}
-  .lines{min-width:0;width:100%;font-size:7px}
-  .lines th,.lines td{padding:1.5mm .8mm}
-  .lines input,.lines select{border:0;padding:0;font-size:7px;appearance:none;-webkit-appearance:none}
-  .bottom{display:grid!important;grid-template-columns:1fr 70mm!important;gap:8mm!important}
-  .bottom textarea{border:0;height:25mm}
-  .totals p{font-size:9px;margin:0;padding:2mm}
-  .grand{background:#eee!important;color:#000!important}
+
+    @page{
+        size:A4 portrait;
+        margin:8mm;
+    }
+
+    body{
+        background:#fff;
+    }
+
+    .no-print,
+    header,
+    nav,
+    .view:not(#invoice),
+    #toast{
+        display:none!important;
+    }
+
+    main{
+        padding:0;
+        max-width:none;
+    }
+
+    #invoice{
+        display:block!important;
+    }
+
+    #paper{
+        box-shadow:none;
+        padding:0;
+        width:194mm;
+        max-width:194mm;
+    }
+
+    /* Cabecera PDF */
+
+    .brand{
+        display:grid!important;
+        grid-template-columns:20mm 1fr 55mm!important;
+        gap:4mm!important;
+        align-items:center!important;
+    }
+
+    .brand img,
+    .invoice-brand img{
+        width:18mm!important;
+        height:18mm!important;
+        max-width:18mm!important;
+        max-height:18mm!important;
+        object-fit:contain!important;
+    }
+
+    .brand h2{
+        font-size:15px;
+    }
+
+    .brand p{
+        font-size:9px;
+    }
+
+    .brand>h1{
+        font-size:17px;
+        text-align:right;
+        grid-column:auto!important;
+    }
+
+    /* Dos columnas en el PDF */
+
+    .meta{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        column-gap:15mm!important;
+        row-gap:2mm!important;
+        margin:6mm 0!important;
+        width:100%!important;
+    }
+
+    .meta label{
+        display:block!important;
+        font-size:9px!important;
+        font-weight:700!important;
+        break-inside:avoid!important;
+    }
+
+    .meta input,
+    .meta select{
+        display:block!important;
+        width:100%!important;
+        border:0!important;
+        padding:1mm 0!important;
+        background:transparent!important;
+        color:#000!important;
+        font-size:10px!important;
+        font-weight:700!important;
+        line-height:1.15!important;
+        appearance:none!important;
+        -webkit-appearance:none!important;
+    }
+
+    /* Productos */
+
+    .scroll{
+        overflow:visible;
+    }
+
+    .lines{
+        min-width:0;
+        width:100%;
+        font-size:7px;
+    }
+
+    .lines th,
+    .lines td{
+        padding:1.5mm .8mm;
+    }
+
+    .lines input,
+    .lines select{
+        border:0;
+        padding:0;
+        font-size:7px;
+        appearance:none;
+        -webkit-appearance:none;
+    }
+
+    /* Observaciones y totales */
+
+    .bottom{
+        display:grid!important;
+        grid-template-columns:1fr 70mm!important;
+        gap:8mm!important;
+    }
+
+    .bottom textarea{
+        border:0;
+        height:25mm;
+    }
+
+    .totals p{
+        font-size:9px;
+        margin:0;
+        padding:2mm;
+    }
+
+    .grand{
+        background:#eee!important;
+        color:#000!important;
+    }
 }
