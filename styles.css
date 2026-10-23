@@ -441,3 +441,85 @@ dialog form{
         color:#000!important;
     }
 }
+
+
+/* Corrección definitiva de la cabecera de factura */
+.invoice-brand{
+    display:grid;
+    grid-template-columns:90px 1fr auto;
+    gap:16px;
+    align-items:center;
+    border-bottom:3px solid var(--g);
+    padding-bottom:18px;
+}
+
+.invoice-brand img{
+    width:85px!important;
+    height:75px!important;
+    max-width:85px!important;
+    max-height:75px!important;
+    object-fit:contain!important;
+    display:block!important;
+}
+
+.invoice-brand h2,
+.invoice-brand p{
+    margin:0;
+}
+
+.invoice-brand h1{
+    color:var(--g);
+    font-size:22px;
+    margin:0;
+}
+
+/* Tablet y móvil */
+@media(max-width:800px){
+    .invoice-brand{
+        grid-template-columns:75px 1fr;
+    }
+
+    .invoice-brand img{
+        width:65px!important;
+        height:60px!important;
+        max-width:65px!important;
+        max-height:60px!important;
+    }
+
+    .invoice-brand h1{
+        grid-column:1/-1;
+    }
+}
+
+/* PDF */
+@media print{
+    .invoice-brand{
+        display:grid!important;
+        grid-template-columns:20mm 1fr 55mm!important;
+        gap:4mm!important;
+        align-items:center!important;
+    }
+
+    .invoice-brand img{
+        width:18mm!important;
+        height:18mm!important;
+        max-width:18mm!important;
+        max-height:18mm!important;
+        object-fit:contain!important;
+    }
+
+    .invoice-brand h1{
+        grid-column:auto!important;
+        text-align:right!important;
+        font-size:17px!important;
+        margin:0!important;
+    }
+
+    .invoice-brand h2{
+        font-size:15px!important;
+    }
+
+    .invoice-brand p{
+        font-size:9px!important;
+    }
+}
