@@ -33,99 +33,120 @@ function clearInvoice(){editingId=null;el.numero.value=nextInvoice();el.fecha.va
 $('#newInvoice').addEventListener('click',clearInvoice);
 $('#saveInvoice').addEventListener('click',()=>{const f=getInvoice();if(!f.clienteId)return toast('Selecciona un cliente.');if(!f.numero)return toast('Indica el número de factura.');if(!f.lineas.length)return toast('Añade al menos un producto con cantidad.');const pos=db.facturas.findIndex(x=>x.id===f.id);pos>=0?db.facturas[pos]=f:db.facturas.push(f);editingId=f.id;persist();toast(`Factura ${f.numero} guardada.`)});
 
-/* Impresión robusta: clona la factura conservando los valores actuales. */
+/* Impresión robusta: genera el PDF desde los datos calculados, sin clonar controles. */
 $('#printInvoice').addEventListener('click',()=>{
     const f=getInvoice();
     if(!f.clienteId||!f.lineas.length)return toast('Completa cliente y productos antes de generar el PDF.');
-    const factura=document.getElementById('invoicePaper');
-    if(!factura)return toast('No se ha encontrado la plantilla de factura.');
 
-    /* outerHTML no conserva los valores elegidos en inputs/selects.
-       Por eso clonamos el nodo y copiamos expresamente el estado actual. */
-    const copia=factura.cloneNode(true);
-    const originales=[...factura.querySelectorAll('input,select,textarea')];
-    const clonados=[...copia.querySelectorAll('input,select,textarea')];
+    const fechaES=v=>{
+        if(!v)return '';
+        const [y,m,d]=String(v).split('-');
+        return y&&m&&d?`${d}/${m}/${y}`:v;
+    };
+    const texto=v=>esc(v??'');
+    const filas=f.lineas.map(x=>`
+        <tr>
+            <td>${texto(x.producto)}</td>
+            <td>${texto(x.tipo==='unidad'?'unidad':'kg')}</td>
+            <td>${money(x.precioCatalogo)}</td>
+            <td>${x.precioEditado==null?'':money(x.precioEditado)}</td>
+            <td>${money(x.precioAplicado)}</td>
+            <td>${x.cantidadKg?texto(String(x.cantidadKg).replace('.',',')):''}</td>
+            <td>${x.cantidadUnidades?texto(x.cantidadUnidades):''}</td>
+            <td>${texto(String(x.descuento).replace('.',','))}</td>
+            <td>${money(x.total)}</td>
+        </tr>`).join('');
 
-    originales.forEach((original,i)=>{
-        const clon=clonados[i];
-        if(!clon)return;
+    const logo=new URL('logo.png',window.location.href).href;
+    const html=`<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>${texto(f.numero||'factura')}</title>
+<style>
+@page{size:A4 portrait;margin:10mm}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:#25332d;font-family:Arial,sans-serif}
+.factura{width:190mm;max-width:190mm;margin:0 auto;background:#fff}
+.cabecera{display:grid;grid-template-columns:20mm minmax(0,1fr) 55mm;gap:4mm;align-items:center;border-bottom:3px solid #1e654b;padding-bottom:4mm}
+.cabecera img{width:18mm;height:18mm;object-fit:contain}
+.cabecera h2{margin:0;font-size:15px}.cabecera p{margin:0;font-size:9px;line-height:1.3}.cabecera h1{margin:0;color:#1e654b;font-size:17px;text-align:right}
+.datos{display:grid;grid-template-columns:1fr 1fr;column-gap:15mm;row-gap:3mm;margin:6mm 0}
+.campo{font-size:9px;font-weight:700}.valor{display:block;margin-top:1mm;font-size:10px;font-weight:700;min-height:4mm}
+table{width:100%;border-collapse:collapse;table-layout:fixed}th{background:#1e654b;color:#fff;font-size:7px;padding:1.5mm .8mm;white-space:normal}td{border-bottom:1px solid #d5dfd9;font-size:7px;padding:1.5mm .8mm;vertical-align:top;overflow-wrap:anywhere}
+.inferior{display:grid;grid-template-columns:1fr 70mm;gap:8mm;margin-top:5mm;break-inside:avoid}.observaciones{font-size:9px}.observaciones h3{margin:0 0 2mm;font-size:16px;font-weight:400}.observaciones div{white-space:pre-wrap}.totales p{display:flex;justify-content:space-between;margin:0;padding:2mm;border-bottom:1px solid #ddd;font-size:9px}.totales .total{background:#eee;font-weight:700}
+.firmas{display:flex;justify-content:space-between;margin-top:8mm;padding-top:2mm;border-top:1px solid #777;font-size:8px;break-inside:avoid}
+</style>
+</head>
+<body>
+<main class="factura">
+    <header class="cabecera">
+        <img src="${logo}" alt="Logo">
+        <div><h2>Frutas El Hortal</h2><p>NIF · 15521346A<br>C/familia Marín Martínez · 23380 Siles, Jaén, España<br>+34 608 325 618</p></div>
+        <h1>FACTURA ORDINARIA</h1>
+    </header>
+    <section class="datos">
+        <div class="campo">Cliente<span class="valor">${texto(f.cliente)}</span></div>
+        <div class="campo">Factura No.<span class="valor">${texto(f.numero)}</span></div>
+        <div class="campo">NIF/CIF<span class="valor">${texto(f.nif)}</span></div>
+        <div class="campo">Fecha creación<span class="valor">${fechaES(f.fecha)}</span></div>
+        <div class="campo">Dirección<span class="valor">${texto(f.direccion)}</span></div>
+        <div class="campo">Vencimiento<span class="valor">${fechaES(f.vencimiento)}</span></div>
+        <div class="campo">Teléfono<span class="valor">${texto(f.telefono)}</span></div>
+        <div class="campo">Forma de pago<span class="valor">${texto(f.pago)}</span></div>
+        <div class="campo">Correo<span class="valor">${texto(f.correo)}</span></div>
+        <div class="campo">IVA<span class="valor">${texto(f.ivaNombre)} (${num(f.ivaValor)*100}%)</span></div>
+    </section>
+    <table>
+        <thead><tr><th>Ítem</th><th>Tipo</th><th>Precio catálogo</th><th>Precio editado</th><th>Precio aplicado</th><th>Cantidad kg</th><th>Cantidad unidades</th><th>Descuento %</th><th>Total sin IVA</th></tr></thead>
+        <tbody>${filas}</tbody>
+    </table>
+    <section class="inferior">
+        <div class="observaciones"><h3>Observaciones</h3><div>${texto(f.observaciones)}</div></div>
+        <div class="totales">
+            <p><span>Subtotal</span><b>${money(f.subtotal)}</b></p>
+            <p><span>Descuento</span><b>${money(f.descuento)}</b></p>
+            <p><span>Base imponible</span><b>${money(f.base)}</b></p>
+            <p><span>${texto(f.ivaNombre)} (${num(f.ivaValor)*100}%)</span><b>${money(f.iva)}</b></p>
+            <p class="total"><span>Total factura</span><b>${money(f.total)}</b></p>
+        </div>
+    </section>
+    <footer class="firmas"><span>ELABORADO POR</span><span>ACEPTADA, FIRMA Y/O SELLO Y FECHA</span></footer>
+</main>
+</body></html>`;
 
-        if(original.tagName==='SELECT'){
-            [...clon.options].forEach((op,j)=>{
-                op.selected=j===original.selectedIndex;
-                if(j===original.selectedIndex)op.setAttribute('selected','selected');
-                else op.removeAttribute('selected');
-            });
-        }else if(original.tagName==='TEXTAREA'){
-            clon.value=original.value;
-            clon.textContent=original.value;
-        }else{
-            clon.value=original.value;
-            clon.setAttribute('value',original.value);
-            if(original.checked)clon.setAttribute('checked','checked');
-            else clon.removeAttribute('checked');
-        }
-    });
+    const anterior=document.getElementById('printFrame');
+    if(anterior)anterior.remove();
+    const frame=document.createElement('iframe');
+    frame.id='printFrame';
+    frame.setAttribute('aria-hidden','true');
+    frame.style.position='fixed';
+    frame.style.right='0';
+    frame.style.bottom='0';
+    frame.style.width='1px';
+    frame.style.height='1px';
+    frame.style.border='0';
+    frame.style.opacity='0';
+    document.body.appendChild(frame);
 
-    /* Convertimos las rutas de imágenes a absolutas para que funcionen
-       dentro de la ventana temporal about:blank. */
-    copia.querySelectorAll('img').forEach(img=>{
-        const src=img.getAttribute('src');
-        if(src)img.src=new URL(src,window.location.href).href;
-    });
-
-    /* Eliminamos controles que no deben salir en la factura. */
-    copia.querySelectorAll('.no-print,button').forEach(x=>x.remove());
-
-    const ventana=window.open('','_blank','noopener,noreferrer');
-    if(!ventana)return toast('El navegador ha bloqueado la ventana de impresión.');
-
-    const estilos=`
-        @page{size:A4 portrait;margin:10mm}
-        *{box-sizing:border-box}
-        html,body{margin:0;padding:0;background:#fff;color:#25332d;font-family:Arial,sans-serif}
-        body{width:100%}
-        .paper{width:190mm;max-width:190mm;margin:0 auto;padding:0;background:#fff}
-        .invoice-brand{display:grid;grid-template-columns:20mm minmax(0,1fr) 55mm;gap:4mm;align-items:center;border-bottom:3px solid #1e654b;padding-bottom:4mm}
-        .invoice-brand img{display:block;width:18mm;height:18mm;max-width:18mm;max-height:18mm;object-fit:contain}
-        .invoice-brand h2{margin:0;font-size:15px;line-height:1.2}
-        .invoice-brand p{margin:0;font-size:9px;line-height:1.3}
-        .invoice-brand h1{margin:0;color:#1e654b;font-size:17px;line-height:1.2;text-align:right}
-        .form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:15mm;row-gap:2mm;margin:6mm 0;width:100%}
-        .form-grid label{display:block;min-width:0;font-size:9px;font-weight:700}
-        .form-grid input,.form-grid select{display:block;width:100%;min-width:0;border:0;border-radius:0;padding:1mm 0;margin:0;background:transparent;color:#000;font:700 10px/1.15 Arial,sans-serif;appearance:none;-webkit-appearance:none}
-        .table-wrap{display:block;width:100%;overflow:visible}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th{background:#1e654b;color:#fff;font-size:7px;padding:1.5mm .8mm;white-space:normal}
-        td{border-bottom:1px solid #d5dfd9;font-size:7px;padding:1.5mm .8mm;vertical-align:top;overflow-wrap:anywhere}
-        td input,td select{display:block;width:100%;min-width:0;border:0;padding:0;margin:0;background:transparent;color:#000;font-size:7px;appearance:none;-webkit-appearance:none}
-        .invoice-bottom{display:grid;grid-template-columns:minmax(0,1fr) 70mm;gap:8mm;margin-top:5mm;width:100%;break-inside:avoid}
-        .invoice-bottom textarea{display:block;width:100%;height:25mm;border:0;padding:1mm;resize:none;overflow:hidden;background:transparent;color:#000}
-        .totals p{display:flex;justify-content:space-between;margin:0;padding:2mm;border-bottom:1px solid #ddd;font-size:9px}
-        .totals .grand{background:#eee;color:#000;font-weight:700}
-        .signatures{display:flex;justify-content:space-between;margin-top:8mm;padding-top:2mm;border-top:1px solid #777;font-size:8px;break-inside:avoid}
-        .no-print,button{display:none!important}
-    `;
-
-    ventana.document.open();
-    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(f.numero||'factura')}</title><style>${estilos}</style></head><body>${copia.outerHTML}</body></html>`);
-    ventana.document.close();
+    const doc=frame.contentDocument;
+    doc.open();
+    doc.write(html);
+    doc.close();
 
     const imprimir=()=>{
-        const imagenes=[...ventana.document.images];
-        const esperarImagenes=imagenes.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{
+        const imagenes=[...doc.images];
+        Promise.all(imagenes.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{
             img.addEventListener('load',resolve,{once:true});
             img.addEventListener('error',resolve,{once:true});
-        }));
-        Promise.all(esperarImagenes).then(()=>setTimeout(()=>{
-            ventana.focus();
-            ventana.print();
+        }))).then(()=>setTimeout(()=>{
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+            setTimeout(()=>frame.remove(),1000);
         },150));
     };
-
-    ventana.addEventListener('afterprint',()=>ventana.close(),{once:true});
-    if(ventana.document.readyState==='complete')imprimir();
-    else ventana.addEventListener('load',imprimir,{once:true});
+    if(doc.readyState==='complete')imprimir();
+    else frame.addEventListener('load',imprimir,{once:true});
 });
 
 window.removeRecord=(type,i)=>{if(confirm('¿Eliminar este registro?')){db[type]=db[type].filter(x=>x.id!=i);persist();toast('Registro eliminado.')}};
