@@ -70,6 +70,8 @@ main{
     padding:24px;
 }
 
+/* Vistas */
+
 .view{
     display:none;
 }
@@ -78,6 +80,8 @@ main{
 .view.on{
     display:block;
 }
+
+/* Inicio */
 
 .hero{
     text-align:center;
@@ -89,6 +93,8 @@ main{
     object-fit:contain;
 }
 
+/* Formularios CRUD */
+
 .crud{
     display:grid;
     grid-template-columns:repeat(7,1fr);
@@ -96,15 +102,22 @@ main{
 }
 
 .crud input,
-select,
-input,
-textarea{
+.crud select,
+.crud textarea,
+.meta input,
+.meta select,
+.meta textarea,
+.form-grid input,
+.form-grid select,
+.form-grid textarea{
     width:100%;
     padding:9px;
     border:1px solid #bacbc2;
     border-radius:6px;
     background:#fff;
 }
+
+/* Barra superior de Nueva factura */
 
 .bar{
     display:flex;
@@ -117,15 +130,21 @@ textarea{
     margin-right:auto;
 }
 
-#paper{
+/* Papel */
+
+#paper,
+#invoicePaper{
     background:#fff;
     padding:35px;
     box-shadow:0 4px 20px #0001;
+    max-width:1000px;
+    margin:18px auto;
 }
 
-/* Cabecera de la factura */
+/* Cabecera de factura */
 
-.brand{
+.brand,
+.invoice-brand{
     display:grid;
     grid-template-columns:100px 1fr auto;
     align-items:center;
@@ -134,46 +153,54 @@ textarea{
     padding-bottom:14px;
 }
 
-/* Evita que el logo de Nueva factura aparezca enorme */
-
 .brand img,
 .invoice-brand img{
-    width:85px;
-    height:75px;
-    max-width:85px;
-    max-height:75px;
-    object-fit:contain;
-    display:block;
+    width:85px!important;
+    height:75px!important;
+    max-width:85px!important;
+    max-height:75px!important;
+    object-fit:contain!important;
+    display:block!important;
 }
 
 .brand h2,
-.brand p{
+.brand p,
+.invoice-brand h2,
+.invoice-brand p{
     margin:0;
 }
 
-.brand>h1{
+.brand>h1,
+.invoice-brand h1{
     color:var(--g);
+    font-size:22px;
+    margin:0;
 }
 
-/* Datos de factura */
+/* Metadatos factura */
 
-.meta{
+.meta,
+.form-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:12px 28px;
     margin:25px 0;
 }
 
-.meta label{
+.meta label,
+.form-grid label{
     font-size:12px;
     font-weight:bold;
-}
-
-.scroll{
-    overflow:auto;
+    min-width:0;
 }
 
 /* Tablas */
+
+.scroll,
+.table-wrap{
+    width:100%;
+    overflow:auto;
+}
 
 table{
     width:100%;
@@ -192,26 +219,31 @@ td{
     border-bottom:1px solid var(--line);
 }
 
-.lines{
+.lines,
+.invoice-lines{
     min-width:1100px;
 }
 
-.actions{
+.actions,
+.line-actions{
     display:flex;
     gap:8px;
     margin:10px 0;
+    flex-wrap:wrap;
 }
 
-/* Parte inferior de la factura */
+/* Parte inferior */
 
-.bottom{
+.bottom,
+.invoice-bottom{
     display:grid;
     grid-template-columns:1fr 350px;
     gap:30px;
     margin-top:20px;
 }
 
-.bottom textarea{
+.bottom textarea,
+.invoice-bottom textarea{
     height:120px;
 }
 
@@ -222,24 +254,28 @@ td{
     padding:8px;
 }
 
-.grand{
+.grand,
+.totals .grand{
     background:var(--g);
     color:#fff;
     border-radius:6px;
 }
 
-/* Ventana de nuevo producto */
+/* Diálogos */
 
 dialog{
     border:0;
     border-radius:12px;
     padding:20px;
+    max-width:520px;
 }
 
 dialog form{
     display:grid;
     gap:10px;
 }
+
+/* Mensajes */
 
 #toast{
     display:none;
@@ -250,235 +286,36 @@ dialog form{
     color:#fff;
     padding:12px;
     border-radius:7px;
+    z-index:1000;
 }
 
-/* Tablet / móvil */
+/* TABLET / MÓVIL */
 
 @media(max-width:800px){
 
-    .crud{
-        grid-template-columns:1fr;
-    }
-
-    .bottom{
-        grid-template-columns:1fr;
-    }
-
-    .brand{
-        grid-template-columns:85px 1fr;
-    }
-
-    .brand img,
-    .invoice-brand img{
-        width:70px;
-        height:65px;
-        max-width:70px;
-        max-height:65px;
-    }
-
-    .brand>h1{
-        grid-column:1/-1;
-    }
-
-    .meta{
-        grid-template-columns:1fr;
+    nav{
+        overflow-x:auto;
     }
 
     main{
         padding:12px;
     }
-}
 
-/* PDF / impresión */
-
-@media print{
-
-    @page{
-        size:A4 portrait;
-        margin:8mm;
+    .crud{
+        grid-template-columns:1fr;
     }
 
-    body{
-        background:#fff;
+    .bottom,
+    .invoice-bottom{
+        grid-template-columns:1fr;
     }
 
-    .no-print,
-header,
-nav,
-.view:not(#factura),
-#toast{
-    display:none!important;
-}
-
-main{
-    padding:0;
-    max-width:none;
-}
-
-#factura{
-    display:block!important;
-}
-
-    #paper{
-        box-shadow:none;
-        padding:0;
-        width:194mm;
-        max-width:194mm;
-    }
-
-    /* Cabecera PDF */
-
-    .brand{
-        display:grid!important;
-        grid-template-columns:20mm 1fr 55mm!important;
-        gap:4mm!important;
-        align-items:center!important;
-    }
-
-    .brand img,
-    .invoice-brand img{
-        width:18mm!important;
-        height:18mm!important;
-        max-width:18mm!important;
-        max-height:18mm!important;
-        object-fit:contain!important;
-    }
-
-    .brand h2{
-        font-size:15px;
-    }
-
-    .brand p{
-        font-size:9px;
-    }
-
-    .brand>h1{
-        font-size:17px;
-        text-align:right;
-        grid-column:auto!important;
-    }
-
-    /* Dos columnas en el PDF */
-
-    .meta{
-        display:grid!important;
-        grid-template-columns:1fr 1fr!important;
-        column-gap:15mm!important;
-        row-gap:2mm!important;
-        margin:6mm 0!important;
-        width:100%!important;
-    }
-
-    .meta label{
-        display:block!important;
-        font-size:9px!important;
-        font-weight:700!important;
-        break-inside:avoid!important;
-    }
-
-    .meta input,
-    .meta select{
-        display:block!important;
-        width:100%!important;
-        border:0!important;
-        padding:1mm 0!important;
-        background:transparent!important;
-        color:#000!important;
-        font-size:10px!important;
-        font-weight:700!important;
-        line-height:1.15!important;
-        appearance:none!important;
-        -webkit-appearance:none!important;
-    }
-
-    /* Productos */
-
-    .scroll{
-        overflow:visible;
-    }
-
-    .lines{
-        min-width:0;
-        width:100%;
-        font-size:7px;
-    }
-
-    .lines th,
-    .lines td{
-        padding:1.5mm .8mm;
-    }
-
-    .lines input,
-    .lines select{
-        border:0;
-        padding:0;
-        font-size:7px;
-        appearance:none;
-        -webkit-appearance:none;
-    }
-
-    /* Observaciones y totales */
-
-    .bottom{
-        display:grid!important;
-        grid-template-columns:1fr 70mm!important;
-        gap:8mm!important;
-    }
-
-    .bottom textarea{
-        border:0;
-        height:25mm;
-    }
-
-    .totals p{
-        font-size:9px;
-        margin:0;
-        padding:2mm;
-    }
-
-    .grand{
-        background:#eee!important;
-        color:#000!important;
-    }
-}
-
-
-/* Corrección definitiva de la cabecera de factura */
-.invoice-brand{
-    display:grid;
-    grid-template-columns:90px 1fr auto;
-    gap:16px;
-    align-items:center;
-    border-bottom:3px solid var(--g);
-    padding-bottom:18px;
-}
-
-.invoice-brand img{
-    width:85px!important;
-    height:75px!important;
-    max-width:85px!important;
-    max-height:75px!important;
-    object-fit:contain!important;
-    display:block!important;
-}
-
-.invoice-brand h2,
-.invoice-brand p{
-    margin:0;
-}
-
-.invoice-brand h1{
-    color:var(--g);
-    font-size:22px;
-    margin:0;
-}
-
-/* Tablet y móvil */
-@media(max-width:800px){
+    .brand,
     .invoice-brand{
         grid-template-columns:75px 1fr;
     }
 
+    .brand img,
     .invoice-brand img{
         width:65px!important;
         height:60px!important;
@@ -486,39 +323,20 @@ main{
         max-height:60px!important;
     }
 
+    .brand>h1,
     .invoice-brand h1{
         grid-column:1/-1;
     }
+
+    .meta,
+    .form-grid{
+        grid-template-columns:1fr;
+    }
 }
 
-/* PDF */
-@media print{
-    .invoice-brand{
-        display:grid!important;
-        grid-template-columns:20mm 1fr 55mm!important;
-        gap:4mm!important;
-        align-items:center!important;
-    }
-
-    .invoice-brand img{
-        width:18mm!important;
-        height:18mm!important;
-        max-width:18mm!important;
-        max-height:18mm!important;
-        object-fit:contain!important;
-    }
-
-    .invoice-brand h1{
-        grid-column:auto!important;
-        text-align:right!important;
-        font-size:17px!important;
-        margin:0!important;
-    }
-
-    .invoice-brand h2{
-        font-size:15px!important;
-    }
-
+/* =========================================================
+   IMPRESIÓN / PDF
+   ===================================
     .invoice-brand p{
         font-size:9px!important;
     }
