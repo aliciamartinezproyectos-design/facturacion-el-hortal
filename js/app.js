@@ -3,8 +3,8 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],KEY
 const el={cliente:$('#cliente'),numero:$('#numero'),nif:$('#nif'),fecha:$('#fecha'),direccion:$('#direccion'),vencimiento:$('#vencimiento'),telefono:$('#telefono'),pago:$('#pago'),correo:$('#correo'),iva:$('#iva'),lineas:$('#lineas'),observaciones:$('#observaciones'),subtotal:$('#subtotal'),descuento:$('#descuentoTotal'),base:$('#base'),ivaLabel:$('#ivaLabel'),ivaTotal:$('#ivaTotal'),total:$('#total'),toast:$('#toast')};
 let db=load(),editingId=null;
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function migrate(x){x.productos=(x.productos||[]).map(p=>({...p,precioKg:p.precioKg??p.precio??null,precioUnidad:p.precioUnidad??null}));return x}
-function load(){try{return migrate(JSON.parse(localStorage.getItem(KEY))||clone(SEED))}catch{return clone(SEED)}}
+function migrate(x){x.productos=(x.productos||[]).map(p=>({...p,precioKg:p.precioKg??p.precio??null,precioUnidad:p.precioUnidad??null}));x.clientes=x.clientes||[];x.ivas=x.ivas||[];x.facturas=x.facturas||[];return x}
+function load(){try{return migrate(JSON.parse(localStorage.getItem(KEY))||clone(SEED))}catch{return migrate(clone(SEED))}}
 function persist(){localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function nextId(a){return a.length?Math.max(...a.map(x=>+x.id||0))+1:1}
 function money(n){return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(+n||0)}
@@ -20,133 +20,27 @@ function fillMasterSelects(){const cv=el.cliente.value,iv=el.iva.value;el.client
 function clientData(){const c=db.clientes.find(x=>x.id==el.cliente.value)||{};el.nif.value=c.nif||'';el.direccion.value=c.direccion||'';el.telefono.value=c.telefono||'';el.correo.value=c.correo||''}
 el.cliente.addEventListener('change',clientData);
 function setQuantityMode(tr,mode){const kg=tr.querySelector('.qty-kg'),units=tr.querySelector('.qty-units');kg.disabled=mode!=='kg';units.disabled=mode!=='unidad';if(mode==='kg')units.value='';else kg.value='';calc()}
-function addLine(data={}){const tr=document.createElement('tr');const mode=data.tipo||'kg';tr.innerHTML=`<td><select class="product-select">${productOptions(data.productoId)}</select></td><td><select class="type-select"><option value="kg" ${mode==='kg'?'selected':''}>kg</option><option value="unidad" ${mode==='unidad'?'selected':''}>unidad</option></select></td><td class="catalog-price">0,00 €</td><td><input class="edited-price" type="number" min="0" step="0.01" value="${data.precioEditado??''}"></td><td class="applied-price">0,00 €</td><td><input class="qty-kg" type="number" min="0" step="0.01" value="${data.cantidadKg??(mode==='kg'?(data.cantidad??''):'')}"></td><td><input class="qty-units" type="number" min="0" step="1" value="${data.cantidadUnidades??(mode==='unidad'?(data.cantidad??''):'')}"></td><td><input class="discount" type="number" min="0" max="100" step="0.01" value="${data.descuento??0}"></td><td class="line-total">0,00 €</td><td class="no-print"><button type="button" class="danger delete-line">×</button></td>`;el.lineas.append(tr);tr.querySelector('.type-select').addEventListener('change',e=>setQuantityMode(tr,e.target.value));tr.querySelector('.delete-line').addEventListener('click',()=>{tr.remove();calc()});tr.addEventListener('input',calc);tr.addEventListener('change',calc);setQuantityMode(tr,mode);return tr}
+function addLine(data={}){const tr=document.createElement('tr'),mode=data.tipo||'kg';tr.innerHTML=`<td><select class="product-select">${productOptions(data.productoId)}</select></td><td><select class="type-select"><option value="kg" ${mode==='kg'?'selected':''}>kg</option><option value="unidad" ${mode==='unidad'?'selected':''}>unidad</option></select></td><td class="catalog-price">0,00 €</td><td><input class="edited-price" type="number" min="0" step="0.01" value="${data.precioEditado??''}"></td><td class="applied-price">0,00 €</td><td><input class="qty-kg" type="number" min="0" step="0.01" value="${data.cantidadKg??(mode==='kg'?(data.cantidad??''):'')}"></td><td><input class="qty-units" type="number" min="0" step="1" value="${data.cantidadUnidades??(mode==='unidad'?(data.cantidad??''):'')}"></td><td><input class="discount" type="number" min="0" max="100" step="0.01" value="${data.descuento??0}"></td><td class="line-total">0,00 €</td><td class="no-print"><button type="button" class="danger delete-line">×</button></td>`;el.lineas.append(tr);tr.querySelector('.type-select').addEventListener('change',e=>setQuantityMode(tr,e.target.value));tr.querySelector('.delete-line').addEventListener('click',()=>{tr.remove();calc()});tr.addEventListener('input',calc);tr.addEventListener('change',calc);setQuantityMode(tr,mode);return tr}
 function calc(){let sub=0,discount=0;$$('#lineas tr').forEach(tr=>{const p=db.productos.find(x=>x.id==tr.querySelector('.product-select').value),mode=tr.querySelector('.type-select').value,catalog=mode==='kg'?p?.precioKg:p?.precioUnidad,edited=tr.querySelector('.edited-price').value,applied=edited!==''?num(edited):num(catalog),qty=mode==='kg'?num(tr.querySelector('.qty-kg').value):num(tr.querySelector('.qty-units').value),d=num(tr.querySelector('.discount').value),gross=applied*qty,net=gross*(1-d/100);sub+=gross;discount+=gross-net;tr.querySelector('.catalog-price').textContent=catalog==null?'Sin precio':money(catalog);tr.querySelector('.applied-price').textContent=money(applied);tr.querySelector('.line-total').textContent=money(net)});const base=sub-discount,r=db.ivas.find(x=>x.id==el.iva.value),tax=base*(r?.valor||0);el.subtotal.textContent=money(sub);el.descuento.textContent=money(discount);el.base.textContent=money(base);el.ivaLabel.textContent=r?`${r.nombre} (${r.valor*100}%)`:'IVA';el.ivaTotal.textContent=money(tax);el.total.textContent=money(base+tax);return{sub,discount,base,tax,total:base+tax}}
-el.iva.addEventListener('change',calc);
-$('#addLine').addEventListener('click',()=>addLine());
+el.iva.addEventListener('change',calc);$('#addLine').addEventListener('click',()=>addLine());
 const dialog=$('#productDialog'),quickForm=$('#quickProductForm');
-$('#quickProduct').addEventListener('click',()=>{quickForm.reset();dialog.showModal()});
-$('#cancelProduct').addEventListener('click',()=>dialog.close());
+$('#quickProduct').addEventListener('click',()=>{quickForm.reset();dialog.showModal()});$('#cancelProduct').addEventListener('click',()=>dialog.close());
 quickForm.addEventListener('submit',e=>{e.preventDefault();const x=Object.fromEntries(new FormData(quickForm)),kg=x.precioKg===''?null:num(x.precioKg),unit=x.precioUnidad===''?null:num(x.precioUnidad);if(kg==null&&unit==null)return toast('Introduce un precio por kg o por unidad.');const p={id:nextId(db.productos),nombre:x.nombre.trim(),precioKg:kg,precioUnidad:unit};db.productos.push(p);persist();const tr=addLine({productoId:p.id,tipo:kg!=null?'kg':'unidad'});tr.querySelector('.product-select').value=String(p.id);calc();dialog.close();toast('Producto creado y añadido a la factura.')});
 function getInvoice(){const c=db.clientes.find(x=>x.id==el.cliente.value),r=db.ivas.find(x=>x.id==el.iva.value),lines=$$('#lineas tr').map((tr,i)=>{const p=db.productos.find(x=>x.id==tr.querySelector('.product-select').value),tipo=tr.querySelector('.type-select').value,catalog=tipo==='kg'?p?.precioKg:p?.precioUnidad,pe=tr.querySelector('.edited-price').value,pa=pe!==''?num(pe):num(catalog),kg=tipo==='kg'?num(tr.querySelector('.qty-kg').value):0,units=tipo==='unidad'?num(tr.querySelector('.qty-units').value):0,q=tipo==='kg'?kg:units,d=num(tr.querySelector('.discount').value);return{i:i+1,productoId:p?.id,producto:p?.nombre||'',tipo,precioCatalogo:num(catalog),precioEditado:pe===''?null:num(pe),precioAplicado:pa,cantidadKg:kg,cantidadUnidades:units,cantidad:q,descuento:d,total:pa*q*(1-d/100)}}).filter(x=>x.productoId&&x.cantidad>0),t=calc();return{id:editingId||Date.now(),numero:el.numero.value.trim(),clienteId:c?.id,cliente:c?.nombre||'',nif:el.nif.value,direccion:el.direccion.value,telefono:el.telefono.value,correo:el.correo.value,fecha:el.fecha.value,vencimiento:el.vencimiento.value,pago:el.pago.value,ivaId:r?.id,ivaNombre:r?.nombre||'',ivaValor:r?.valor||0,observaciones:el.observaciones.value,lineas:lines,subtotal:t.sub,descuento:t.discount,base:t.base,iva:t.tax,total:t.total}}
 function clearInvoice(){editingId=null;el.numero.value=nextInvoice();el.fecha.value=el.vencimiento.value=today();el.cliente.value='';clientData();el.pago.value='Transferencia bancaria';el.observaciones.value='';el.lineas.innerHTML='';addLine();calc()}
 $('#newInvoice').addEventListener('click',clearInvoice);
 $('#saveInvoice').addEventListener('click',()=>{const f=getInvoice();if(!f.clienteId)return toast('Selecciona un cliente.');if(!f.numero)return toast('Indica el número de factura.');if(!f.lineas.length)return toast('Añade al menos un producto con cantidad.');const pos=db.facturas.findIndex(x=>x.id===f.id);pos>=0?db.facturas[pos]=f:db.facturas.push(f);editingId=f.id;persist();toast(`Factura ${f.numero} guardada.`)});
 
-/* Impresión robusta: genera el PDF desde los datos calculados, sin clonar controles. */
+/* PDF: solo Precio aplicado, cantidades y total. Valores numéricos centrados. */
 $('#printInvoice').addEventListener('click',()=>{
-    const f=getInvoice();
-    if(!f.clienteId||!f.lineas.length)return toast('Completa cliente y productos antes de generar el PDF.');
-
-    const fechaES=v=>{
-        if(!v)return '';
-        const [y,m,d]=String(v).split('-');
-        return y&&m&&d?`${d}/${m}/${y}`:v;
-    };
-    const texto=v=>esc(v??'');
-    const filas=f.lineas.map(x=>`
-        <tr>
-            <td>${texto(x.producto)}</td>
-            <td>${texto(x.tipo==='unidad'?'unidad':'kg')}</td>
-            <td>${money(x.precioCatalogo)}</td>
-            <td>${x.precioEditado==null?'':money(x.precioEditado)}</td>
-            <td>${money(x.precioAplicado)}</td>
-            <td>${x.cantidadKg?texto(String(x.cantidadKg).replace('.',',')):''}</td>
-            <td>${x.cantidadUnidades?texto(x.cantidadUnidades):''}</td>
-            <td>${texto(String(x.descuento).replace('.',','))}</td>
-            <td>${money(x.total)}</td>
-        </tr>`).join('');
-
-    const logo=new URL('logo.png',window.location.href).href;
-    const html=`<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<title>${texto(f.numero||'factura')}</title>
-<style>
-@page{size:A4 portrait;margin:10mm}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff;color:#25332d;font-family:Arial,sans-serif}
-.factura{width:190mm;max-width:190mm;margin:0 auto;background:#fff}
-.cabecera{display:grid;grid-template-columns:20mm minmax(0,1fr) 55mm;gap:4mm;align-items:center;border-bottom:3px solid #1e654b;padding-bottom:4mm}
-.cabecera img{width:18mm;height:18mm;object-fit:contain}
-.cabecera h2{margin:0;font-size:15px}.cabecera p{margin:0;font-size:9px;line-height:1.3}.cabecera h1{margin:0;color:#1e654b;font-size:17px;text-align:right}
-.datos{display:grid;grid-template-columns:1fr 1fr;column-gap:15mm;row-gap:3mm;margin:6mm 0}
-.campo{font-size:9px;font-weight:700}.valor{display:block;margin-top:1mm;font-size:10px;font-weight:700;min-height:4mm}
-table{width:100%;border-collapse:collapse;table-layout:fixed}th{background:#1e654b;color:#fff;font-size:7px;padding:1.5mm .8mm;white-space:normal}td{border-bottom:1px solid #d5dfd9;font-size:7px;padding:1.5mm .8mm;vertical-align:top;overflow-wrap:anywhere}
-.inferior{display:grid;grid-template-columns:1fr 70mm;gap:8mm;margin-top:5mm;break-inside:avoid}.observaciones{font-size:9px}.observaciones h3{margin:0 0 2mm;font-size:16px;font-weight:400}.observaciones div{white-space:pre-wrap}.totales p{display:flex;justify-content:space-between;margin:0;padding:2mm;border-bottom:1px solid #ddd;font-size:9px}.totales .total{background:#eee;font-weight:700}
-.firmas{display:flex;justify-content:space-between;margin-top:8mm;padding-top:2mm;border-top:1px solid #777;font-size:8px;break-inside:avoid}
-</style>
-</head>
-<body>
-<main class="factura">
-    <header class="cabecera">
-        <img src="${logo}" alt="Logo">
-        <div><h2>Frutas El Hortal</h2><p>NIF · 15521346A<br>C/familia Marín Martínez · 23380 Siles, Jaén, España<br>+34 608 325 618</p></div>
-        <h1>FACTURA ORDINARIA</h1>
-    </header>
-    <section class="datos">
-        <div class="campo">Cliente<span class="valor">${texto(f.cliente)}</span></div>
-        <div class="campo">Factura No.<span class="valor">${texto(f.numero)}</span></div>
-        <div class="campo">NIF/CIF<span class="valor">${texto(f.nif)}</span></div>
-        <div class="campo">Fecha creación<span class="valor">${fechaES(f.fecha)}</span></div>
-        <div class="campo">Dirección<span class="valor">${texto(f.direccion)}</span></div>
-        <div class="campo">Vencimiento<span class="valor">${fechaES(f.vencimiento)}</span></div>
-        <div class="campo">Teléfono<span class="valor">${texto(f.telefono)}</span></div>
-        <div class="campo">Forma de pago<span class="valor">${texto(f.pago)}</span></div>
-        <div class="campo">Correo<span class="valor">${texto(f.correo)}</span></div>
-        <div class="campo">IVA<span class="valor">${texto(f.ivaNombre)} (${num(f.ivaValor)*100}%)</span></div>
-    </section>
-    <table>
-        <thead><tr><th>Ítem</th><th>Tipo</th><th>Precio catálogo</th><th>Precio editado</th><th>Precio aplicado</th><th>Cantidad kg</th><th>Cantidad unidades</th><th>Descuento %</th><th>Total sin IVA</th></tr></thead>
-        <tbody>${filas}</tbody>
-    </table>
-    <section class="inferior">
-        <div class="observaciones"><h3>Observaciones</h3><div>${texto(f.observaciones)}</div></div>
-        <div class="totales">
-            <p><span>Subtotal</span><b>${money(f.subtotal)}</b></p>
-            <p><span>Descuento</span><b>${money(f.descuento)}</b></p>
-            <p><span>Base imponible</span><b>${money(f.base)}</b></p>
-            <p><span>${texto(f.ivaNombre)} (${num(f.ivaValor)*100}%)</span><b>${money(f.iva)}</b></p>
-            <p class="total"><span>Total factura</span><b>${money(f.total)}</b></p>
-        </div>
-    </section>
-    <footer class="firmas"><span>ELABORADO POR</span><span>ACEPTADA, FIRMA Y/O SELLO Y FECHA</span></footer>
-</main>
-</body></html>`;
-
-    const anterior=document.getElementById('printFrame');
-    if(anterior)anterior.remove();
-    const frame=document.createElement('iframe');
-    frame.id='printFrame';
-    frame.setAttribute('aria-hidden','true');
-    frame.style.position='fixed';
-    frame.style.right='0';
-    frame.style.bottom='0';
-    frame.style.width='1px';
-    frame.style.height='1px';
-    frame.style.border='0';
-    frame.style.opacity='0';
-    document.body.appendChild(frame);
-
-    const doc=frame.contentDocument;
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    const imprimir=()=>{
-        const imagenes=[...doc.images];
-        Promise.all(imagenes.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{
-            img.addEventListener('load',resolve,{once:true});
-            img.addEventListener('error',resolve,{once:true});
-        }))).then(()=>setTimeout(()=>{
-            frame.contentWindow.focus();
-            frame.contentWindow.print();
-            setTimeout(()=>frame.remove(),1000);
-        },150));
-    };
-    if(doc.readyState==='complete')imprimir();
-    else frame.addEventListener('load',imprimir,{once:true});
+ const f=getInvoice();if(!f.clienteId||!f.lineas.length)return toast('Completa cliente y productos antes de generar el PDF.');
+ const fechaES=v=>{if(!v)return '';const [y,m,d]=String(v).split('-');return y&&m&&d?`${d}/${m}/${y}`:v},texto=v=>esc(v??'');
+ const filas=f.lineas.map(x=>`<tr><td>${texto(x.producto)}</td><td>${texto(x.tipo==='unidad'?'unidad':'kg')}</td><td>${money(x.precioAplicado)}</td><td>${x.cantidadKg?texto(String(x.cantidadKg).replace('.',',')):''}</td><td>${x.cantidadUnidades?texto(x.cantidadUnidades):''}</td><td>${money(x.total)}</td></tr>`).join('');
+ const logo=new URL('logo.png',window.location.href).href;
+ const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${texto(f.numero||'factura')}</title><style>
+ @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#25332d;font-family:Arial,sans-serif}.factura{width:190mm;max-width:190mm;margin:0 auto;background:#fff}.cabecera{display:grid;grid-template-columns:20mm minmax(0,1fr) 55mm;gap:4mm;align-items:center;border-bottom:3px solid #1e654b;padding-bottom:4mm}.cabecera img{width:18mm;height:18mm;object-fit:contain}.cabecera h2{margin:0;font-size:15px}.cabecera p{margin:0;font-size:9px;line-height:1.3}.cabecera h1{margin:0;color:#1e654b;font-size:17px;text-align:right}.datos{display:grid;grid-template-columns:1fr 1fr;column-gap:15mm;row-gap:3mm;margin:6mm 0}.campo{font-size:9px;font-weight:700}.valor{display:block;margin-top:1mm;font-size:10px;font-weight:700;min-height:4mm}table{width:100%;border-collapse:collapse;table-layout:fixed}th{background:#1e654b;color:#fff;font-size:8px;padding:1.8mm 1mm;white-space:normal;text-align:center}td{border-bottom:1px solid #d5dfd9;font-size:8px;padding:1.8mm 1mm;vertical-align:middle;overflow-wrap:anywhere;text-align:center}th:first-child,td:first-child{text-align:left}th:nth-child(1){width:29%}th:nth-child(2){width:10%}th:nth-child(3){width:16%}th:nth-child(4){width:14%}th:nth-child(5){width:16%}th:nth-child(6){width:15%}.inferior{display:grid;grid-template-columns:1fr 70mm;gap:8mm;margin-top:5mm;break-inside:avoid}.observaciones{font-size:9px}.observaciones h3{margin:0 0 2mm;font-size:16px;font-weight:400}.observaciones div{white-space:pre-wrap}.totales p{display:flex;justify-content:space-between;margin:0;padding:2mm;border-bottom:1px solid #ddd;font-size:9px}.totales .total{background:#eee;font-weight:700}.firmas{display:flex;justify-content:space-between;margin-top:8mm;padding-top:2mm;border-top:1px solid #777;font-size:8px;break-inside:avoid}
+ </style></head><body><main class="factura"><header class="cabecera"><img src="${logo}" alt="Logo"><div><h2>Frutas El Hortal</h2><p>NIF · 15521346A<br>C/familia Marín Martínez · 23380 Siles, Jaén, España<br>+34 608 325 618</p></div><h1>FACTURA ORDINARIA</h1></header><section class="datos"><div class="campo">Cliente<span class="valor">${texto(f.cliente)}</span></div><div class="campo">Factura No.<span class="valor">${texto(f.numero)}</span></div><div class="campo">NIF/CIF<span class="valor">${texto(f.nif)}</span></div><div class="campo">Fecha creación<span class="valor">${fechaES(f.fecha)}</span></div><div class="campo">Dirección<span class="valor">${texto(f.direccion)}</span></div><div class="campo">Vencimiento<span class="valor">${fechaES(f.vencimiento)}</span></div><div class="campo">Teléfono<span class="valor">${texto(f.telefono)}</span></div><div class="campo">Forma de pago<span class="valor">${texto(f.pago)}</span></div><div class="campo">Correo<span class="valor">${texto(f.correo)}</span></div><div class="campo">IVA<span class="valor">${texto(f.ivaNombre)} (${num(f.ivaValor)*100}%)</span></div></section><table><thead><tr><th>Ítem</th><th>Tipo</th><th>Precio aplicado</th><th>Cantidad kg</th><th>Cantidad unidades</th><th>Total sin IVA</th></tr></thead><tbody>${filas}</tbody></table><section class="inferior"><div class="observaciones"><h3>Observaciones</h3><div>${texto(f.observaciones)}</div></div><div class="totales"><p><span>Subtotal</span><b>${money(f.subtotal)}</b></p><p><span>Descuento</span><b>${money(f.descuento)}</b></p><p><span>Base imponible</span><b>${money(f.base)}</b></p><p><span>${texto(f.ivaNombre)} (${num(f.ivaValor)*100}%)</span><b>${money(f.iva)}</b></p><p class="total"><span>Total factura</span><b>${money(f.total)}</b></p></div></section><footer class="firmas"><span>ELABORADO POR</span><span>ACEPTADA, FIRMA Y/O SELLO Y FECHA</span></footer></main></body></html>`;
+ const anterior=$('#printFrame');if(anterior)anterior.remove();const frame=document.createElement('iframe');frame.id='printFrame';frame.setAttribute('aria-hidden','true');Object.assign(frame.style,{position:'fixed',right:'0',bottom:'0',width:'1px',height:'1px',border:'0',opacity:'0'});document.body.appendChild(frame);const doc=frame.contentDocument;doc.open();doc.write(html);doc.close();const imprimir=()=>Promise.all([...doc.images].map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r}))).then(()=>setTimeout(()=>{frame.contentWindow.focus();frame.contentWindow.print();setTimeout(()=>frame.remove(),1000)},150));if(doc.readyState==='complete')imprimir();else frame.addEventListener('load',imprimir,{once:true});
 });
 
 window.removeRecord=(type,i)=>{if(confirm('¿Eliminar este registro?')){db[type]=db[type].filter(x=>x.id!=i);persist();toast('Registro eliminado.')}};
@@ -162,5 +56,4 @@ function makeCsv(type){let h=[],r=[];if(type==='clientes'){h=['Nombre','NIF/CIF'
 $$('[data-export]').forEach(b=>b.addEventListener('click',()=>makeCsv(b.dataset.export)));
 $('#backupBtn').addEventListener('click',()=>download(`facturacion_backup_${today()}.json`,JSON.stringify(db,null,2),'application/json'));
 $('#restoreFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{db=migrate(JSON.parse(rd.result));persist();clearInvoice();toast('Copia restaurada.')}catch{toast('El JSON no es válido.')}};rd.readAsText(f)});
-renderAll();
-clearInvoice();
+renderAll();clearInvoice();
