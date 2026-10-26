@@ -33,14 +33,53 @@ function clearInvoice(){editingId=null;el.numero.value=nextInvoice();el.fecha.va
 $('#newInvoice').addEventListener('click',clearInvoice);
 $('#saveInvoice').addEventListener('click',()=>{const f=getInvoice();if(!f.clienteId)return toast('Selecciona un cliente.');if(!f.numero)return toast('Indica el número de factura.');if(!f.lineas.length)return toast('Añade al menos un producto con cantidad.');const pos=db.facturas.findIndex(x=>x.id===f.id);pos>=0?db.facturas[pos]=f:db.facturas.push(f);editingId=f.id;persist();toast(`Factura ${f.numero} guardada.`)});
 
-/* Impresión robusta: abre una ventana que contiene exclusivamente la factura. */
+/* Impresión robusta: clona la factura conservando los valores actuales. */
 $('#printInvoice').addEventListener('click',()=>{
     const f=getInvoice();
     if(!f.clienteId||!f.lineas.length)return toast('Completa cliente y productos antes de generar el PDF.');
     const factura=document.getElementById('invoicePaper');
     if(!factura)return toast('No se ha encontrado la plantilla de factura.');
-    const ventana=window.open('','_blank');
+
+    /* outerHTML no conserva los valores elegidos en inputs/selects.
+       Por eso clonamos el nodo y copiamos expresamente el estado actual. */
+    const copia=factura.cloneNode(true);
+    const originales=[...factura.querySelectorAll('input,select,textarea')];
+    const clonados=[...copia.querySelectorAll('input,select,textarea')];
+
+    originales.forEach((original,i)=>{
+        const clon=clonados[i];
+        if(!clon)return;
+
+        if(original.tagName==='SELECT'){
+            [...clon.options].forEach((op,j)=>{
+                op.selected=j===original.selectedIndex;
+                if(j===original.selectedIndex)op.setAttribute('selected','selected');
+                else op.removeAttribute('selected');
+            });
+        }else if(original.tagName==='TEXTAREA'){
+            clon.value=original.value;
+            clon.textContent=original.value;
+        }else{
+            clon.value=original.value;
+            clon.setAttribute('value',original.value);
+            if(original.checked)clon.setAttribute('checked','checked');
+            else clon.removeAttribute('checked');
+        }
+    });
+
+    /* Convertimos las rutas de imágenes a absolutas para que funcionen
+       dentro de la ventana temporal about:blank. */
+    copia.querySelectorAll('img').forEach(img=>{
+        const src=img.getAttribute('src');
+        if(src)img.src=new URL(src,window.location.href).href;
+    });
+
+    /* Eliminamos controles que no deben salir en la factura. */
+    copia.querySelectorAll('.no-print,button').forEach(x=>x.remove());
+
+    const ventana=window.open('','_blank','noopener,noreferrer');
     if(!ventana)return toast('El navegador ha bloqueado la ventana de impresión.');
+
     const estilos=`
         @page{size:A4 portrait;margin:10mm}
         *{box-sizing:border-box}
@@ -56,9 +95,9 @@ $('#printInvoice').addEventListener('click',()=>{
         .form-grid label{display:block;min-width:0;font-size:9px;font-weight:700}
         .form-grid input,.form-grid select{display:block;width:100%;min-width:0;border:0;border-radius:0;padding:1mm 0;margin:0;background:transparent;color:#000;font:700 10px/1.15 Arial,sans-serif;appearance:none;-webkit-appearance:none}
         .table-wrap{display:block;width:100%;overflow:visible}
-        table{width:100%;border-collapse:collapse;table-layout:auto}
+        table{width:100%;border-collapse:collapse;table-layout:fixed}
         th{background:#1e654b;color:#fff;font-size:7px;padding:1.5mm .8mm;white-space:normal}
-        td{border-bottom:1px solid #d5dfd9;font-size:7px;padding:1.5mm .8mm;vertical-align:top}
+        td{border-bottom:1px solid #d5dfd9;font-size:7px;padding:1.5mm .8mm;vertical-align:top;overflow-wrap:anywhere}
         td input,td select{display:block;width:100%;min-width:0;border:0;padding:0;margin:0;background:transparent;color:#000;font-size:7px;appearance:none;-webkit-appearance:none}
         .invoice-bottom{display:grid;grid-template-columns:minmax(0,1fr) 70mm;gap:8mm;margin-top:5mm;width:100%;break-inside:avoid}
         .invoice-bottom textarea{display:block;width:100%;height:25mm;border:0;padding:1mm;resize:none;overflow:hidden;background:transparent;color:#000}
@@ -67,11 +106,26 @@ $('#printInvoice').addEventListener('click',()=>{
         .signatures{display:flex;justify-content:space-between;margin-top:8mm;padding-top:2mm;border-top:1px solid #777;font-size:8px;break-inside:avoid}
         .no-print,button{display:none!important}
     `;
+
     ventana.document.open();
-    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(f.numero||'factura')}</title><style>${estilos}</style></head><body>${factura.outerHTML}</body></html>`);
+    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(f.numero||'factura')}</title><style>${estilos}</style></head><body>${copia.outerHTML}</body></html>`);
     ventana.document.close();
-    const imprimir=()=>setTimeout(()=>{ventana.focus();ventana.print()},350);
-    if(ventana.document.readyState==='complete')imprimir();else ventana.addEventListener('load',imprimir,{once:true});
+
+    const imprimir=()=>{
+        const imagenes=[...ventana.document.images];
+        const esperarImagenes=imagenes.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{
+            img.addEventListener('load',resolve,{once:true});
+            img.addEventListener('error',resolve,{once:true});
+        }));
+        Promise.all(esperarImagenes).then(()=>setTimeout(()=>{
+            ventana.focus();
+            ventana.print();
+        },150));
+    };
+
+    ventana.addEventListener('afterprint',()=>ventana.close(),{once:true});
+    if(ventana.document.readyState==='complete')imprimir();
+    else ventana.addEventListener('load',imprimir,{once:true});
 });
 
 window.removeRecord=(type,i)=>{if(confirm('¿Eliminar este registro?')){db[type]=db[type].filter(x=>x.id!=i);persist();toast('Registro eliminado.')}};
