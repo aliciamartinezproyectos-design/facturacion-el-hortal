@@ -303,21 +303,21 @@ dialog form{
     }
 
     .no-print,
-    header,
-    nav,
-    .view:not(#invoice),
-    #toast{
-        display:none!important;
-    }
+header,
+nav,
+.view:not(#factura),
+#toast{
+    display:none!important;
+}
 
-    main{
-        padding:0;
-        max-width:none;
-    }
+main{
+    padding:0;
+    max-width:none;
+}
 
-    #invoice{
-        display:block!important;
-    }
+#factura{
+    display:block!important;
+}
 
     #paper{
         box-shadow:none;
